@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Lookup — OSINT Tool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #222222;
+      --border: #2e2e2e;
+      --text: #e8e8e8;
+      --text-muted: #777;
+      --text-sub: #aaa;
+      --accent: #3b82f6;
+      --accent-bg: #1e3a5f;
+      --accent-text: #93c5fd;
+      --success-bg: #14532d;
+      --success-text: #86efac;
+      --danger: #f87171;
+      --radius: 10px;
+      --mono: 'Courier New', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .container { width: 100%; max-width: 680px; }
+
+    header { text-align: center; margin-bottom: 2rem; }
+    header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 4px; }
+    header p { font-size: 13px; color: var(--text-muted); }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 8px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px 6px 6px 14px;
+      align-items: center;
+    }
+    .search-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 15px;
+      font-family: var(--mono);
+      letter-spacing: 0.05em;
+    }
+    .search-box input::placeholder { color: var(--text-muted); font-family: inherit; }
+    .search-box button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .search-box button:hover { opacity: 0.85; }
+    .search-box button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .meta-row {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+    .meta-row span { display: flex; align-items: center; gap: 5px; }
+    .meta-row strong { color: var(--text-sub); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 12px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--accent-bg);
+      color: var(--accent-text);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 14px;
+      flex-shrink: 0;
+    }
+    .name-main { font-size: 15px; font-weight: 500; color: var(--text); }
+    .name-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+      background: var(--accent-bg);
+      color: var(--accent-text);
+      vertical-align: middle;
+    }
+    .badge.green { background: var(--success-bg); color: var(--success-text); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 12px; }
+    .field { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0; font-size: 13px; }
+    .field-icon { color: var(--text-muted); font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+    .field-label { color: var(--text-muted); min-width: 80px; }
+    .field-val { color: var(--text); word-break: break-word; flex: 1; }
+    .field-val.mono { font-family: var(--mono); font-size: 11px; color: var(--text-sub); }
+
+    .status {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .status.error { color: var(--danger); }
+    .status svg { display: block; margin: 0 auto 10px; opacity: 0.5; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid #fff4;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span class="dot"></span>Phone OSINT Lookup</h1>
+      <p>Enter a 10-digit number to fetch subscriber records</p>
+    </header>
+
+    <div class="search-box">
+      <input type="text" id="phoneInput" placeholder="e.g. 9876543210" maxlength="15" inputmode="numeric">
+      <button id="searchBtn" onclick="doLookup()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Lookup
+      </button>
+    </div>
+
+    <div id="results"></div>
+
+    <footer>Running on localhost:3000 &nbsp;|&nbsp; Powered by proxy server</footer>
+  </div>
+
+  <script>
+    function getInitials(name) {
+      if (!name) return "??";
+      const skip = ["MR","MRS","MS","DR","SHRI"];
+      const parts = name.trim().toUpperCase().split(/\s+/).filter(p => !skip.includes(p));
+      if (!parts.length) return name.slice(0,2).toUpperCase();
+      if (parts.length === 1) return parts[0].slice(0,2);
+      return parts[0][0] + parts[parts.length-1][0];
+    }
+
+    function cleanName(name) {
+      if (!name) return "";
+      return name.replace(/^(MR|MRS|MS|DR|SHRI)\s+/i, "").trim();
+    }
+
+    function cleanAddress(addr) {
+      if (!addr) return null;
+      return addr.replace(/^!+/, "").split("!").map(s => s.trim()).filter(Boolean).join(", ");
+    }
+
+    function renderCard(entry, idx) {
+      const initials = getInitials(entry.name || entry.fname || "");
+      const displayName = cleanName(entry.name || entry.fname || "Unknown");
+      const fname = cleanName(entry.fname || "");
+      const address = cleanAddress(entry.address);
+      const circle = entry.circle || "";
+      const id = entry.id || "";
+      const mobile = entry.mobile || "";
+      const alt = entry.alt || "";
+      const badgeClass = idx % 2 === 0 ? "badge" : "badge green";
+
+      return `
+        <div class="card">
+          <div class="card-header">
+            <div class="avatar">${initials}</div>
+            <div>
+              <div class="name-main">${displayName}${circle ? `<span class="${badgeClass}">${circle}</span>` : ""}</div>
+              <div class="name-sub">${fname && fname !== displayName ? fname : ""}</div>
+            </div>
+          </div>
+          <hr class="divider">
+          ${mobile ? `<div class="field"><span class="field-icon">📱</span><span class="field-label">Primary</span><span class="field-val">${mobile}</span></div>` : ""}
+          ${alt ? `<div class="field"><span class="field-icon">📞</span><span class="field-label">Alternate</span><span class="field-val">${alt}</span></div>` : ""}
+          ${address ? `<div class="field"><span class="field-icon">📍</span><span class="field-label">Address</span><span class="field-val">${address}</span></div>` : ""}
+          ${id ? `<div class="field"><span class="field-icon">🪪</span><span class="field-label">Aadhar Number</span><span class="field-val mono">${id}</span></div>` : ""}
+        </div>
+      `;
+    }
+
+    async function doLookup() {
+      const phone = document.getElementById("phoneInput").value.trim();
+      const resultsDiv = document.getElementById("results");
+      const btn = document.getElementById("searchBtn");
+
+      if (!phone || phone.length < 7) {
+        resultsDiv.innerHTML = '<div class="status error">⚠️ Enter a valid phone number.</div>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Fetching...';
+      resultsDiv.innerHTML = '<div class="status">📡 Scanning telecom universe...</div>';
+
+      try {
+        const res = await fetch(`/lookup?phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
+
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Lookup';
+
+        if (!data.success || !data.data || data.data.length === 0) {
+          resultsDiv.innerHTML = '<div class="status error">No records found for this number.</div>';
+          return;
+        }
+
+        const total = data.total_found || data.data.length;
+        const primary = data.primary || phone;
+
+        let html = `<div class="meta-row">
+          <span>📱 Primary: <strong>${primary}</strong></span>
+          <span>🗂 <strong>${total}</strong> record${total !== 1 ? "s" : ""} found</span>
+        </div>`;
+        data.data.forEach((entry, i) => { html += renderCard(entry, i); });
+        resultsDiv.innerHTML = html;
+
+      } catch (e) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Lookup';
+        resultsDiv.innerHTML = `<div class="status error">❌ Server not reachable. Make sure <code>node server.js</code> is running.</div>`;
+      }
+    }
+
+    document.getElementById("phoneInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") doLookup();
+    });
+  </script>
+</body>
+</html>
