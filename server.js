@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = 3000;
-const API_BASE = "https://astha-9vd8.onrender.com/tapi-50ef9513ec867f25490777489b683c84?phone=";
+const API_BASE = "https://free-api-anuragsingh.vercel.app/api/number?num=";
 
 const server = http.createServer((req, res) => {
   const parsed = url.parse(req.url, true);

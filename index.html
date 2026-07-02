@@ -170,8 +170,8 @@
 <body>
   <div class="container">
     <header>
-      <h1><span class="dot"></span>Phone Number Details</h1>
-      <p>Enter a 10-digit number</p>
+      <h1><span class="dot"></span>Phone OSINT Lookup</h1>
+      <p>Enter a 10-digit number and Get Details </p>
     </header>
 
     <div class="search-box">
@@ -184,7 +184,7 @@
 
     <div id="results"></div>
 
-    <footer>Developed By gh0stv1p3r &nbsp;|&nbsp; Secured By Trinetra Bharat </footer>
+    <footer>Developed By gh0stv1p3r &nbsp;|&nbsp; Trinetra Bharat</footer>
   </div>
 
   <script>
@@ -211,11 +211,13 @@
       const initials = getInitials(entry.name || entry.fname || "");
       const displayName = cleanName(entry.name || entry.fname || "Unknown");
       const fname = cleanName(entry.fname || "");
-      const address = cleanAddress(entry.address);
+      const address = entry.address || null;
       const circle = entry.circle || "";
       const id = entry.id || "";
       const mobile = entry.mobile || "";
       const alt = entry.alt || "";
+      const email = entry.email && entry.email !== "N/A" ? entry.email : "";
+      const truecaller = entry.truecaller_name || "";
       const badgeClass = idx % 2 === 0 ? "badge" : "badge green";
 
       return `
@@ -224,12 +226,14 @@
             <div class="avatar">${initials}</div>
             <div>
               <div class="name-main">${displayName}${circle ? `<span class="${badgeClass}">${circle}</span>` : ""}</div>
-              <div class="name-sub">${fname && fname !== displayName ? fname : ""}</div>
+              <div class="name-sub">${fname && fname !== displayName ? "AKA " + fname : ""}</div>
             </div>
           </div>
           <hr class="divider">
-          ${mobile ? `<div class="field"><span class="field-icon">📱</span><span class="field-label">Primary</span><span class="field-val">${mobile}</span></div>` : ""}
+          ${mobile ? `<div class="field"><span class="field-icon">📱</span><span class="field-label">Mobile</span><span class="field-val">${mobile}</span></div>` : ""}
           ${alt ? `<div class="field"><span class="field-icon">📞</span><span class="field-label">Alternate</span><span class="field-val">${alt}</span></div>` : ""}
+          ${truecaller ? `<div class="field"><span class="field-icon">✅</span><span class="field-label">Truecaller</span><span class="field-val">${truecaller}</span></div>` : ""}
+          ${email ? `<div class="field"><span class="field-icon">✉️</span><span class="field-label">Email</span><span class="field-val">${email}</span></div>` : ""}
           ${address ? `<div class="field"><span class="field-icon">📍</span><span class="field-label">Address</span><span class="field-val">${address}</span></div>` : ""}
           ${id ? `<div class="field"><span class="field-icon">🪪</span><span class="field-label">Aadhar Number</span><span class="field-val mono">${id}</span></div>` : ""}
         </div>
@@ -257,19 +261,23 @@
         btn.disabled = false;
         btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Lookup';
 
-        if (!data.success || !data.data || data.data.length === 0) {
+        if (!data.success || !data.results || data.results.length === 0) {
           resultsDiv.innerHTML = '<div class="status error">No records found for this number.</div>';
           return;
         }
 
-        const total = data.total_found || data.data.length;
-        const primary = data.primary || phone;
+        const total = data.total || data.results.length;
+        const primary = data.number || phone;
+        const cached = data.cached ? `<span>⚡ Cached result</span>` : "";
+        const truecallerGlobal = data.truecaller_name ? `<span>✅ Truecaller: <strong>${data.truecaller_name}</strong></span>` : "";
 
         let html = `<div class="meta-row">
-          <span>📱 Primary: <strong>${primary}</strong></span>
+          <span>📱 Number: <strong>${primary}</strong></span>
           <span>🗂 <strong>${total}</strong> record${total !== 1 ? "s" : ""} found</span>
+          ${cached}
+          ${truecallerGlobal}
         </div>`;
-        data.data.forEach((entry, i) => { html += renderCard(entry, i); });
+        data.results.forEach((entry, i) => { html += renderCard(entry, i); });
         resultsDiv.innerHTML = html;
 
       } catch (e) {
