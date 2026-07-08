@@ -1,295 +1,417 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Phone Lookup — OSINT Tool</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0f0f0f;
-      --surface: #1a1a1a;
-      --surface2: #222222;
-      --border: #2e2e2e;
-      --text: #e8e8e8;
-      --text-muted: #777;
-      --text-sub: #aaa;
-      --accent: #3b82f6;
-      --accent-bg: #1e3a5f;
-      --accent-text: #93c5fd;
-      --success-bg: #14532d;
-      --success-text: #86efac;
-      --danger: #f87171;
-      --radius: 10px;
-      --mono: 'Courier New', monospace;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem 1rem;
-    }
-
-    .container { width: 100%; max-width: 680px; }
-
-    header { text-align: center; margin-bottom: 2rem; }
-    header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 4px; }
-    header p { font-size: 13px; color: var(--text-muted); }
-    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 8px; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-    .search-box {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 1.5rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 6px 6px 6px 14px;
-      align-items: center;
-    }
-    .search-box input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text);
-      font-size: 15px;
-      font-family: var(--mono);
-      letter-spacing: 0.05em;
-    }
-    .search-box input::placeholder { color: var(--text-muted); font-family: inherit; }
-    .search-box button {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 7px;
-      padding: 8px 18px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: opacity 0.15s;
-    }
-    .search-box button:hover { opacity: 0.85; }
-    .search-box button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .meta-row {
-      display: flex;
-      gap: 16px;
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 1rem;
-      padding: 8px 12px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      flex-wrap: wrap;
-    }
-    .meta-row span { display: flex; align-items: center; gap: 5px; }
-    .meta-row strong { color: var(--text-sub); }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem 1.25rem;
-      margin-bottom: 12px;
-    }
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .avatar {
-      width: 42px; height: 42px;
-      border-radius: 50%;
-      background: var(--accent-bg);
-      color: var(--accent-text);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 600; font-size: 14px;
-      flex-shrink: 0;
-    }
-    .name-main { font-size: 15px; font-weight: 500; color: var(--text); }
-    .name-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-    .badge {
-      display: inline-block;
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 20px;
-      margin-left: 8px;
-      background: var(--accent-bg);
-      color: var(--accent-text);
-      vertical-align: middle;
-    }
-    .badge.green { background: var(--success-bg); color: var(--success-text); }
-    .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 12px; }
-    .field { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0; font-size: 13px; }
-    .field-icon { color: var(--text-muted); font-size: 15px; margin-top: 1px; flex-shrink: 0; }
-    .field-label { color: var(--text-muted); min-width: 80px; }
-    .field-val { color: var(--text); word-break: break-word; flex: 1; }
-    .field-val.mono { font-family: var(--mono); font-size: 11px; color: var(--text-sub); }
-
-    .status {
-      text-align: center;
-      padding: 2.5rem 1rem;
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-    .status.error { color: var(--danger); }
-    .status svg { display: block; margin: 0 auto 10px; opacity: 0.5; }
-
-    .spinner {
-      display: inline-block;
-      width: 16px; height: 16px;
-      border: 2px solid #fff4;
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    footer {
-      margin-top: 2.5rem;
-      text-align: center;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RECON // Target Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#070A0C;
+    --panel:#0F1417;
+    --panel-2:#141B1F;
+    --line:#20292C;
+    --orange:#FF6A3D;
+    --orange-dim:#7A3320;
+    --teal:#5EEAD4;
+    --teal-dim:#1F6E63;
+    --text:#F2F5F4;
+    --muted:#5C6B70;
+    --muted-2:#3A4548;
+    --disp:'Rajdhani', sans-serif;
+    --mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(255,106,61,0.09), transparent 55%),
+      repeating-linear-gradient(0deg, rgba(94,234,212,0.025) 0px, rgba(94,234,212,0.025) 1px, transparent 1px, transparent 38px),
+      repeating-linear-gradient(90deg, rgba(94,234,212,0.025) 0px, rgba(94,234,212,0.025) 1px, transparent 1px, transparent 38px),
+      var(--ink);
+    color:var(--text);
+    font-family:var(--mono);
+    min-height:100vh;
+    padding:26px 22px 70px;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+  .topbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 20px;border:1px solid var(--line);background:var(--panel);
+    clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+    margin-bottom:18px;
+  }
+  .logo{display:flex;align-items:center;gap:12px;}
+  .logo-ring{width:34px;height:34px;border:2px solid var(--orange);border-radius:50%;position:relative;flex-shrink:0;}
+  .logo-ring::before{content:"";position:absolute;inset:8px;border:1px solid var(--orange);border-radius:50%;}
+  .logo-ring::after{content:"";position:absolute;top:-3px;left:50%;width:1px;height:6px;background:var(--orange);transform:translateX(-50%);}
+  .logo h1{font-family:var(--disp);font-size:24px;font-weight:700;letter-spacing:1px;line-height:1;}
+  .logo small{display:block;font-size:9px;letter-spacing:3px;color:var(--muted);margin-top:3px;}
+  .sys-status{display:flex;gap:22px;}
+  .sys-status .item{font-size:10px;color:var(--muted);letter-spacing:1px;text-align:right;}
+  .sys-status .item b{display:block;color:var(--teal);font-family:var(--disp);font-size:15px;font-weight:600;letter-spacing:0.5px;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .chip{
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    font-family:var(--disp);font-size:14px;font-weight:600;letter-spacing:0.5px;
+    padding:9px 18px;cursor:pointer;transition:all .15s ease;
+    clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);
+    display:flex;align-items:center;gap:8px;border:none;
+  }
+  .chip .num{font-family:var(--mono);font-size:10px;color:var(--muted-2);}
+  .chip:hover{color:var(--text);background:rgba(255,106,61,0.06);}
+  .chip.active{
+    background:linear-gradient(180deg,rgba(255,106,61,0.18),rgba(255,106,61,0.06));
+    outline:1px solid var(--orange);color:var(--text);
+  }
+  .chip.active .num{color:var(--orange);}
+  .search-frame{position:relative;margin-bottom:6px;}
+  .search-panel{
+    display:flex;gap:0;border:1px solid var(--line);background:var(--panel);
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  }
+  .reticle{
+    width:52px;display:flex;align-items:center;justify-content:center;
+    border-right:1px solid var(--line);flex-shrink:0;position:relative;
+  }
+  .reticle svg{width:22px;height:22px;}
+  .search-panel input{
+    flex:1;background:transparent;border:none;outline:none;color:var(--text);
+    font-family:var(--mono);font-size:14px;padding:16px;
+  }
+  .search-panel input::placeholder{color:var(--muted-2);}
+  .search-panel button.go{
+    background:var(--orange);color:#0A0C0C;border:none;
+    font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:1px;
+    padding:0 28px;cursor:pointer;transition:filter .15s;
+  }
+  .search-panel button.go:hover{filter:brightness(1.12);}
+  .search-panel button.go:disabled{opacity:0.4;cursor:not-allowed;}
+  .pulse-ring{
+    position:absolute;top:50%;left:26px;transform:translate(-50%,-50%);
+    width:22px;height:22px;border-radius:50%;border:2px solid var(--orange);
+    opacity:0;pointer-events:none;
+  }
+  .search-panel.loading .pulse-ring{animation:pulse 1s ease-out infinite;}
+  @keyframes pulse{
+    0%{opacity:0.8;transform:translate(-50%,-50%) scale(0.6);}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(2.4);}
+  }
+  .endpoint-line{font-size:10px;color:var(--muted-2);letter-spacing:0.5px;margin:10px 0 26px 2px;}
+  .endpoint-line b{color:var(--muted);}
+  .target-card{
+    position:relative;border:1px solid var(--line);background:var(--panel);
+    margin-bottom:20px;padding:2px;animation:in .35s ease;
+  }
+  @keyframes in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .bracket{position:absolute;width:16px;height:16px;border-color:var(--orange);}
+  .bracket.tl{top:-1px;left:-1px;border-top:2px solid;border-left:2px solid;}
+  .bracket.tr{top:-1px;right:-1px;border-top:2px solid;border-right:2px solid;}
+  .bracket.bl{bottom:-1px;left:-1px;border-bottom:2px solid;border-left:2px solid;}
+  .bracket.br{bottom:-1px;right:-1px;border-bottom:2px solid;border-right:2px solid;}
+  .target-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel-2);
+  }
+  .target-head .id{font-family:var(--disp);font-size:18px;font-weight:700;letter-spacing:0.5px;}
+  .target-head .id span{color:var(--orange);}
+  .target-head .meta{display:flex;align-items:center;gap:16px;}
+  .target-head .lock{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--teal);letter-spacing:1.5px;}
+  .target-head .lock .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);}
+  .rec-count{font-size:10px;color:var(--muted);letter-spacing:1px;}
+  .rec-count b{color:var(--orange);}
+  .rec-divider{
+    font-size:10px;letter-spacing:2px;color:var(--orange);
+    padding:8px 22px;background:rgba(255,106,61,0.05);
+    border-top:1px solid var(--orange-dim);border-bottom:1px dashed var(--line);
+    font-family:var(--disp);font-weight:600;
+  }
+  .target-body{padding:0 22px;}
+  .field{
+    display:grid;grid-template-columns:160px 1fr;gap:14px;
+    padding:11px 0;border-bottom:1px dashed var(--line);font-size:13px;
+  }
+  .field:last-child{border-bottom:none;}
+  .field .k{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1.2px;padding-top:2px;}
+  .field .v{color:var(--text);word-break:break-word;line-height:1.5;}
+  .field .v.mono{font-family:var(--mono);color:var(--teal);}
+  .field .v.hi{color:var(--orange);}
+  .target-foot{
+    padding:9px 22px;font-size:9.5px;color:var(--muted-2);
+    letter-spacing:1px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;
+  }
+  .empty,.error-box{
+    text-align:center;padding:56px 20px;color:var(--muted);
+    font-size:12px;letter-spacing:0.5px;border:1px dashed var(--line);
+  }
+  .empty .glyph{font-family:var(--disp);font-size:15px;color:var(--muted);letter-spacing:3px;margin-bottom:10px;}
+  .error-box{color:var(--orange);border-color:var(--orange-dim);}
+  .error-box b{color:var(--text);}
+  footer{margin-top:30px;text-align:center;font-size:9.5px;color:var(--muted-2);letter-spacing:1.5px;}
+  @media(max-width:640px){
+    .sys-status{display:none;}
+    .field{grid-template-columns:1fr;gap:3px;}
+  }
+</style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1><span class="dot"></span>Phone OSINT Lookup</h1>
-      <p>Enter a 10-digit number and Get Details </p>
-    </header>
-
-    <div class="search-box">
-      <input type="text" id="phoneInput" placeholder="e.g. 9876543210" maxlength="15" inputmode="numeric">
-      <button id="searchBtn" onclick="doLookup()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Lookup
-      </button>
+<div class="wrap">
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-ring"></div>
+      <div><h1>RECON</h1><small>TARGET ACQUISITION CONSOLE</small></div>
     </div>
-
-    <div id="results"></div>
-
-    <footer>Developed By gh0stv1p3r &nbsp;|&nbsp; Trinetra Bharat</footer>
+    <div class="sys-status">
+      <div class="item">STATUS<b id="sysStatus">ONLINE</b></div>
+      <div class="item">QUERIES<b id="queryCount">000</b></div>
+    </div>
   </div>
-
-  <script>
-    function getInitials(name) {
-      if (!name) return "??";
-      const skip = ["MR","MRS","MS","DR","SHRI"];
-      const parts = name.trim().toUpperCase().split(/\s+/).filter(p => !skip.includes(p));
-      if (!parts.length) return name.slice(0,2).toUpperCase();
-      if (parts.length === 1) return parts[0].slice(0,2);
-      return parts[0][0] + parts[parts.length-1][0];
+  <div class="chips" id="chips"></div>
+  <div class="search-frame">
+    <div class="search-panel" id="searchPanel">
+      <div class="reticle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#FF6A3D" stroke-width="1.5">
+          <circle cx="12" cy="12" r="8"/>
+          <circle cx="12" cy="12" r="1.6" fill="#FF6A3D" stroke="none"/>
+          <line x1="12" y1="1" x2="12" y2="4"/>
+          <line x1="12" y1="20" x2="12" y2="23"/>
+          <line x1="1" y1="12" x2="4" y2="12"/>
+          <line x1="20" y1="12" x2="23" y2="12"/>
+        </svg>
+        <div class="pulse-ring"></div>
+      </div>
+      <input id="queryInput" type="text" placeholder="Enter target value...">
+      <button class="go" id="goBtn">LOCATE</button>
+    </div>
+  </div>
+  <div class="endpoint-line" id="endpointLine"></div>
+  <div id="results">
+    <div class="empty">
+      <div class="glyph">◎ NO ACTIVE TARGET</div>
+      Run a query to acquire a result.
+    </div>
+  </div>
+  <footer>RECON CONSOLE v3 · ALL QUERIES LOGGED · gh0stv1p3r × Trinetra Bharat</footer>
+</div>
+<script>
+const TYPES = {
+  number: {
+    label: "Phone",
+    num: "01",
+    placeholder: "Enter 10-digit mobile number",
+    inputmode: "numeric",
+    renderRecords(records, raw) {
+      return records.map((e, i) => {
+        const addr = cleanAddr(e.address || "");
+        return fields([
+          ["Registered Name",  e.name   || e.fname || ""],
+          ["Father / CO",      e.fname && e.name && e.fname !== e.name ? e.fname : ""],
+          ["Mobile",           e.mobile || e.num || ""],
+          ["Alternate",        e.alt || ""],
+          ["Circle / Operator",e.circle || ""],
+          ["Address",          addr],
+          ["Truecaller",       e.truecaller_name || ""],
+          ["Email",            e.email && e.email !== "N/A" ? e.email : ""],
+          ["Record ID",        e.id || "", "mono"],
+        ], i, records.length);
+      });
     }
-
-    function cleanName(name) {
-      if (!name) return "";
-      return name.replace(/^(MR|MRS|MS|DR|SHRI)\s+/i, "").trim();
+  },
+  aadhar: {
+    label: "Aadhaar",
+    num: "02",
+    placeholder: "Enter 12-digit Aadhaar number",
+    inputmode: "numeric",
+    renderRecords(records, raw) {
+      return records.map((e, i) => {
+        const addr = cleanAddr(e.address || "");
+        const uid  = e.aadhar || e.aadhar_no || e.aadhaar || e.uid || "";
+        return fields([
+          ["Aadhaar", uid, "mono"],
+          ["Name",             e.name || ""],
+          ["Father / CO",      e.fname || e.father_name || ""],
+          ["Linked Mobile",    e.num || e.mobile || ""],
+          ["Alternate",        e.alt || ""],
+          ["Circle / Operator",e.circle || ""],
+          ["Address",          addr],
+          ["DOB",              e.dob || ""],
+          ["Gender",           e.gender || ""],
+          ["State",            e.state || ""],
+        ], i, records.length);
+      });
     }
-
-    function cleanAddress(addr) {
-      if (!addr) return null;
-      return addr.replace(/^!+/, "").split("!").map(s => s.trim()).filter(Boolean).join(", ");
+  },
+  vehicle: {
+    label: "Vehicle",
+    num: "03",
+    placeholder: "Enter reg no. e.g. DL7SCX1901",
+    inputmode: "text",
+    renderRecords(records, raw) {
+      return records.map((e, i) => {
+        const model = [e.maker_desc||e.make||e.manufacturer, e.model_desc||e.model||e.vehicle_model].filter(Boolean).join(" ");
+        return fields([
+          ["Reg. Number",    e.reg_no||e.registration_number||e.rc_number||e.vehicle_no||"", "mono"],
+          ["Owner",          e.owner_name||e.owner||e.registered_owner||e.rc_owner_name||"", "hi"],
+          ["Mobile",         e.mobile_no||e.mobile||e.owner_mobile||""],
+          ["Address",        e.address||e.owner_address||""],
+          ["Make / Model",   model],
+          ["Color",          e.color||e.vehicle_colour||e.colour||""],
+          ["Fuel Type",      e.fuel_desc||e.fuel_type||e.fuel||""],
+          ["Seating",        e.seating_cap||e.seating_capacity||""],
+          ["Engine No.",     e.engine_no||e.engine||"", "mono"],
+          ["Chassis No.",    e.chassis_no||e.chassis||e.chasi_no||"", "mono"],
+          ["Reg. Date",      e.reg_date||e.registration_date||""],
+          ["RTO / Office",   e.office_name||e.rto||e.rto_name||""],
+          ["RC Status",      e.rc_status||e.status||e.vehicle_status||""],
+          ["Financer",       e.financer||e.finance_by||""],
+          ["Insurance Upto", e.insurance_upto||e.insurance_expiry||""],
+          ["Ins. Company",   e.insurance_company||e.insurer||""],
+          ["Policy No.",     e.policy_no||e.insurance_policy_no||"", "mono"],
+          ["Tax Upto",       e.tax_upto||e.tax_valid_upto||""],
+          ["FC / Fitness",   e.fc_upto||e.fitness_upto||""],
+          ["PUCC Upto",      e.pucc_upto||e.puc_upto||""],
+          ["Emission Norm",  e.emission_norm||e.norm_desc||e.bharat_stage||""],
+          ["Permit Type",    e.permit_type||e.permit||""],
+          ["Permit Upto",    e.permit_upto||e.permit_valid_upto||""],
+          ["Blacklist",      e.blacklist_status||""],
+        ], i, records.length);
+      });
     }
+  }
+};
 
-    function renderCard(entry, idx) {
-      const initials = getInitials(entry.name || entry.fname || "");
-      const displayName = cleanName(entry.name || entry.fname || "Unknown");
-      const fname = cleanName(entry.fname || "");
-      const address = entry.address || null;
-      const circle = entry.circle || "";
-      const id = entry.id || "";
-      const mobile = entry.mobile || "";
-      const alt = entry.alt || "";
-      const email = entry.email && entry.email !== "N/A" ? entry.email : "";
-      const truecaller = entry.truecaller_name || "";
-      const badgeClass = idx % 2 === 0 ? "badge" : "badge green";
+function cleanAddr(a) {
+  if (!a) return "";
+  if (typeof a === "object") {
+    return [a.house,a.street,a.landmark,a.locality,a.vtc,a.dist||a.district,a.state,a.pincode||a.pc]
+      .filter(Boolean).join(", ");
+  }
+  return String(a).replace(/^!+/,"").split("!").map(s=>s.trim()).filter(Boolean).join(", ");
+}
 
-      return `
-        <div class="card">
-          <div class="card-header">
-            <div class="avatar">${initials}</div>
-            <div>
-              <div class="name-main">${displayName}${circle ? `<span class="${badgeClass}">${circle}</span>` : ""}</div>
-              <div class="name-sub">${fname && fname !== displayName ? "AKA " + fname : ""}</div>
-            </div>
-          </div>
-          <hr class="divider">
-          ${mobile ? `<div class="field"><span class="field-icon">📱</span><span class="field-label">Mobile</span><span class="field-val">${mobile}</span></div>` : ""}
-          ${alt ? `<div class="field"><span class="field-icon">📞</span><span class="field-label">Alternate</span><span class="field-val">${alt}</span></div>` : ""}
-          ${truecaller ? `<div class="field"><span class="field-icon">✅</span><span class="field-label">Truecaller</span><span class="field-val">${truecaller}</span></div>` : ""}
-          ${email ? `<div class="field"><span class="field-icon">✉️</span><span class="field-label">Email</span><span class="field-val">${email}</span></div>` : ""}
-          ${address ? `<div class="field"><span class="field-icon">📍</span><span class="field-label">Address</span><span class="field-val">${address}</span></div>` : ""}
-          ${id ? `<div class="field"><span class="field-icon">🪪</span><span class="field-label">Aadhar Number</span><span class="field-val mono">${id}</span></div>` : ""}
+function fields(pairs, recIdx, total) {
+  const rows = pairs.filter(([,v])=>v).map(([k,v,cls])=>`
+    <div class="field">
+      <div class="k">${k}</div>
+      <div class="v${cls?" "+cls:""}">${v}</div>
+    </div>`).join("");
+  const divider = total > 1
+    ? `<div class="rec-divider"> RECORD ${String(recIdx+1).padStart(2,"0")} / ${String(total).padStart(2,"0")}</div>`
+    : "";
+  return divider + `<div class="target-body">${rows}</div>`;
+}
+
+function pad(n){ return String(n).padStart(3,"0"); }
+function ts(){ return new Date().toLocaleString("en-IN",{hour12:false}); }
+
+let activeType = "number";
+let queryCount = 0;
+
+const chipsEl      = document.getElementById("chips");
+const inputEl      = document.getElementById("queryInput");
+const endpointLine = document.getElementById("endpointLine");
+const goBtn        = document.getElementById("goBtn");
+const searchPanel  = document.getElementById("searchPanel");
+const resultsEl    = document.getElementById("results");
+const queryCountEl = document.getElementById("queryCount");
+
+function renderChips() {
+  chipsEl.innerHTML = "";
+  Object.keys(TYPES).forEach(key => {
+    const t   = TYPES[key];
+    const btn = document.createElement("button");
+    btn.className = "chip" + (key === activeType ? " active" : "");
+    btn.innerHTML = `<span class="num">${t.num}</span>${t.label}`;
+    btn.onclick = () => {
+      activeType = key;
+      renderChips();
+      updateHead();
+      inputEl.value = "";
+      resultsEl.innerHTML = `<div class="empty"><div class="glyph">◎ NO ACTIVE TARGET</div>Run a query to acquire a result.</div>`;
+      inputEl.focus();
+    };
+    chipsEl.appendChild(btn);
+  });
+}
+
+function updateHead() {
+  const t = TYPES[activeType];
+  inputEl.placeholder  = t.placeholder;
+  inputEl.inputMode    = t.inputmode || "text";
+  endpointLine.innerHTML = `TARGETING MODULE · <b>${t.label.toUpperCase()}</b> · proxy via localhost`;
+}
+
+async function runSearch() {
+  const q = inputEl.value.trim();
+  if (!q) return;
+  searchPanel.classList.add("loading");
+  goBtn.disabled = true;
+  try {
+    const res  = await fetch(`/lookup?type=${activeType}&q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    const raw = data._raw || data;
+    let records = data.records || [];
+    if (!records.length) {
+      const SKIP = new Set(["success","status","message","error","code","token","statusCode","msg","timestamp","developer","_raw","total_found","primary","by","credit"]);
+      for (const k of ["results","records","data","result","info","response","items","entries"]) {
+        if (Array.isArray(raw[k]) && raw[k].length) { records = raw[k]; break; }
+        if (raw[k] && typeof raw[k]==="object" && !Array.isArray(raw[k]) && Object.keys(raw[k]).length > 1) { records=[raw[k]]; break; }
+      }
+      if (!records.length) {
+        const rk = Object.keys(raw).filter(k=>!SKIP.has(k));
+        if (rk.length >= 2) records = [raw];
+      }
+    }
+    if (!records.length) {
+      showError(`No records found for <b>${q}</b>`);
+      return;
+    }
+    queryCount++;
+    queryCountEl.textContent = pad(queryCount);
+    const type = TYPES[activeType];
+    const bodyHtml = type.renderRecords(records, raw).join("");
+    const card = document.createElement("div");
+    card.className = "target-card";
+    card.innerHTML = `
+      <span class="bracket tl"></span><span class="bracket tr"></span>
+      <span class="bracket bl"></span><span class="bracket br"></span>
+      <div class="target-head">
+        <div class="id">TARGET <span>#${pad(queryCount)}</span> — ${type.label.toUpperCase()}</div>
+        <div class="meta">
+          <span class="rec-count"><b>${records.length}</b> RECORD${records.length!==1?"S":""}</span>
+          <span class="lock"><span class="dot"></span>LOCKED</span>
         </div>
-      `;
-    }
+      </div>
+      ${bodyHtml}
+      <div class="target-foot">
+        <span>QUERY · ${q}</span>
+        <span>${ts()}</span>
+      </div>`;
+    if (resultsEl.querySelector(".empty")) resultsEl.innerHTML = "";
+    resultsEl.prepend(card);
+  } catch(err) {
+    showError(`ACQUISITION FAILED · ${err.message}<br>Make sure <b>node server.js</b> is running.`);
+  } finally {
+    searchPanel.classList.remove("loading");
+    goBtn.disabled = false;
+  }
+}
 
-    async function doLookup() {
-      const phone = document.getElementById("phoneInput").value.trim();
-      const resultsDiv = document.getElementById("results");
-      const btn = document.getElementById("searchBtn");
+function showError(msg) {
+  const div = document.createElement("div");
+  div.className = "error-box";
+  div.innerHTML = msg;
+  if (resultsEl.querySelector(".empty")) resultsEl.innerHTML = "";
+  resultsEl.prepend(div);
+}
 
-      if (!phone || phone.length < 7) {
-        resultsDiv.innerHTML = '<div class="status error">⚠️ Enter a valid phone number.</div>';
-        return;
-      }
+goBtn.addEventListener("click", runSearch);
+inputEl.addEventListener("keydown", e => { if(e.key==="Enter") runSearch(); });
 
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Fetching...';
-      resultsDiv.innerHTML = '<div class="status">📡 Scanning telecom universe...</div>';
-
-      try {
-        const res = await fetch(`/lookup?phone=${encodeURIComponent(phone)}`);
-        const data = await res.json();
-
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Lookup';
-
-        if (!data.success || !data.results || data.results.length === 0) {
-          resultsDiv.innerHTML = '<div class="status error">No records found for this number.</div>';
-          return;
-        }
-
-        const total = data.total || data.results.length;
-        const primary = data.number || phone;
-        const cached = data.cached ? `<span>⚡ Cached result</span>` : "";
-        const truecallerGlobal = data.truecaller_name ? `<span>✅ Truecaller: <strong>${data.truecaller_name}</strong></span>` : "";
-
-        let html = `<div class="meta-row">
-          <span>📱 Number: <strong>${primary}</strong></span>
-          <span>🗂 <strong>${total}</strong> record${total !== 1 ? "s" : ""} found</span>
-          ${cached}
-          ${truecallerGlobal}
-        </div>`;
-        data.results.forEach((entry, i) => { html += renderCard(entry, i); });
-        resultsDiv.innerHTML = html;
-
-      } catch (e) {
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Lookup';
-        resultsDiv.innerHTML = `<div class="status error">❌ Server not reachable. Make sure <code>node server.js</code> is running.</div>`;
-      }
-    }
-
-    document.getElementById("phoneInput").addEventListener("keydown", e => {
-      if (e.key === "Enter") doLookup();
-    });
-  </script>
+renderChips();
+updateHead();
+</script>
 </body>
 </html>
