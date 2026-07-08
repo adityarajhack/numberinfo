@@ -155,8 +155,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
   // Serve HTML — osint-console.html first, fallback to index.html
-  if (parsed.pathname === "/" || parsed.pathname === "/index.html" || parsed.pathname === "/osint-console.html") {
-    const names = ["osint-console.html", "index.html"];
+  if (parsed.pathname === "/" || parsed.pathname === "/index.html" || parsed.pathname === "/index.html") {
+    const names = ["index.html", "index.html"];
     let served = false;
     for (const name of names) {
       const filePath = path.join(__dirname, name);
